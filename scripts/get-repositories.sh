@@ -84,3 +84,4 @@ server {
 echo "Getting all repositories..."
 
 download_repo "/vagrant/dub5" "git@github.com:Dub5/dub5.git"
+download_repo "/vagrant/dub5-api" "git@github.com:Dub5/dub5-api"

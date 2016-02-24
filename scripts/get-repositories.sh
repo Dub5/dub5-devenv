@@ -18,4 +18,4 @@ download_repo () {
 
 print_message 2 "Getting all project repositories."
 
-download_repo "/vagrant/chopeo-store" "git@github.com:HelloCodeMX/chopeo-store.git"
+download_repo "/vagrant/chopeo-store" "git@github.com:Dub5/dub5-api”

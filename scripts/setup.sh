@@ -64,7 +64,6 @@ EOF
 --no-document
 EOF
 `
-
 chmod +x /home/vagrant/upgrade_rbenv.sh
 su vagrant -c "bash -c /home/vagrant/upgrade_rbenv.sh"
 rm /home/vagrant/upgrade_rbenv.sh
@@ -80,22 +79,6 @@ perl -i -p -e 's/local   all             all                                    
 
 `cat >/etc/nginx/sites-available/dub5-api <<\EOF
 server {
-    server_name api.lvh.me;
-
-    listen 3000;
-
-    client_max_body_size 10M;
-
-    passenger_enabled on;
-
-    rails_env development;
-    root /vagrant/dub5-api/public;
-}
-EOF
-`
-
-`cat >/etc/nginx/sites-available/dub5-stores <<\EOF
-server {
     server_name *.lvh.me;
 
     listen 3000;
@@ -105,12 +88,7 @@ server {
     passenger_enabled on;
 
     rails_env development;
-    root /vagrant/dub5-stores/public;
-
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root html;
-    }
+    root /vagrant/dub5-api/public;
 }
 EOF
 `

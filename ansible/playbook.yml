@@ -1,0 +1,87 @@
+---
+- hosts: all
+  vars:
+    ruby_version: 2.2
+    postgresql_version: 9.5
+  tasks:
+  - become: yes
+    block:
+    - name: Install required packages
+      apt: name={{ item }}
+      with_items:
+        - software-properties-common
+        - libffi-dev
+        - libcurl4-gnutls-dev
+        - git
+        - build-essential
+        - nodejs
+    - name: Add the brightbox PPA for ruby packages
+      apt_repository: repo='ppa:brightbox/ruby-ng' update_cache=yes
+    - name: Add ruby packages
+      apt: name={{ item }} state=present
+      with_items:
+        - ruby{{ ruby_version }}
+        - ruby{{ ruby_version }}-dev
+        - ruby-switch
+    - name: Switch default ruby
+      alternatives: name={{ item.name }} path={{ item.path }}
+      with_items:
+        - name: ruby
+          path: /usr/bin/ruby{{ ruby_version }}
+    - name: Install bundler
+      gem: name=bundler user_install=no
+    - name: Set hostname
+      copy:
+        dest: /etc/hostname
+        content: dub5.dev
+    - name: Set loopback host
+      lineinfile:
+        dest: /etc/hosts
+        line: "127.0.0.1 dub5.dev"
+    - name: Add postgresql apt repo key
+      apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
+    - name: Add postgresql apt repo
+      apt_repository: repo="deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" state=present
+    - name: Install postgresql {{ postgresql_version }}
+      apt: name={{ item }} state=present
+      with_items:
+        - postgresql-{{ postgresql_version }}
+        - libpq-dev
+        - python-psycopg2
+    - name: Create a postgresql vagrant user
+      postgresql_user: name=vagrant role_attr_flags=CREATEDB
+      become: yes
+      become_user: postgres
+  - block:
+    - name: Create the environment script
+      copy: src=environment.sh dest=/home/vagrant/.environment.sh mode=0644 owner=vagrant
+    - name: Ensure secret_keys.sh exists
+      copy: dest=/home/vagrant/.secret_keys.sh mode=0644 owner=vagrant force=no content=""
+    - name: Ensure bash profile exists
+      copy: dest=/home/vagrant/.bash_profile mode=0644 owner=vagrant force=no content=""
+    - name: Include environment script in bash profile
+      lineinfile:
+        dest: /home/vagrant/.bash_profile
+        line: "source ~/.environment.sh"
+    - name: Skip documentation when installing gems
+      copy:
+        dest: /home/vagrant/.gemrc
+        mode: 0644
+        owner: vagrant
+        content: |
+          ---
+          gem: --no-ri --no-rdoc
+    - name: Check out source repos
+      git: repo=ssh://{{ item.repo }} dest={{ item.dest }} accept_hostkey=yes
+      with_items:
+        - repo: git@github.com/Dub5/chopeo-store.git
+          dest: /vagrant/chopeo-store
+        - repo: git@github.com/Dub5/chopeo-landing.git
+          dest: /vagrant/chopeo-landing
+    - name: Run bundler
+      bundler: state=present chdir=/vagrant/chopeo-store
+    - name: Run rake db:setup
+      command: bundle exec rake db:setup
+      args:
+        chdir: /vagrant/chopeo-store
+        creates: /home/vagrant/.chopeo_store_db_setup

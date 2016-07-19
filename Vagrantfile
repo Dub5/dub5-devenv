@@ -15,7 +15,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.synced_folder '.', '/vagrant', type: 'nfs'
 
-  config.vm.provision :shell, path: 'scripts/setup.sh'
+  #config.vm.provision :shell, path: 'scripts/setup.sh'
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "ansible/playbook.yml"
+    ansible.install = true
+    ansible.verbose = true
+  end
 
   config.vm.provider :virtualbox do |v|
     v.name = 'Dub5 Development Environment'

@@ -1,6 +1,7 @@
 ---
 - hosts: all
   vars:
+    hostname: dub5
     ruby_version: 2.2
     postgresql_version: 9.5
   tasks:
@@ -15,6 +16,8 @@
         - git
         - build-essential
         - nodejs
+        - apt-transport-https
+        - ca-certificates
     - name: Add the brightbox PPA for ruby packages
       apt_repository: repo='ppa:brightbox/ruby-ng' update_cache=yes
     - name: Add ruby packages
@@ -30,14 +33,16 @@
           path: /usr/bin/ruby{{ ruby_version }}
     - name: Install bundler
       gem: name=bundler user_install=no
-    - name: Set hostname
+    - name: Set hostname config
       copy:
         dest: /etc/hostname
-        content: dub5.dev
+        content: "{{ hostname }}"
+      notify:
+      - set hostname
     - name: Set loopback host
       lineinfile:
         dest: /etc/hosts
-        line: "127.0.0.1 dub5.dev"
+        line: "127.0.0.1 {{ hostname }}"
     - name: Add postgresql apt repo key
       apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
     - name: Add postgresql apt repo
@@ -52,6 +57,19 @@
       postgresql_user: name=vagrant role_attr_flags=CREATEDB
       become: yes
       become_user: postgres
+    - name: Add passenger apt repo key
+      apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=561F9B9CAC40B2F7 state=present
+    - name: Add passenger apt repo
+      apt_repository: repo="deb https://oss-binaries.phusionpassenger.com/apt/passenger trusty main" state=present
+    - name: Install passenger
+      apt: name={{ item }} state=present
+      with_items:
+        - passenger
+        - nginx-extras
+    - name: Set nginx configuration
+      copy: src=nginx.conf dest=/etc/nginx/nginx.conf owner=root
+      notify:
+      - reload nginx
   - block:
     - name: Create the environment script
       copy: src=environment.sh dest=/home/vagrant/.environment.sh mode=0644 owner=vagrant
@@ -81,7 +99,14 @@
     - name: Run bundler
       bundler: state=present chdir=/vagrant/chopeo-store
     - name: Run rake db:setup
-      command: bundle exec rake db:setup
+      shell: bundle exec rake db:setup && touch /home/vagrant/chopeo_store_db_setup_finished
       args:
         chdir: /vagrant/chopeo-store
-        creates: /home/vagrant/.chopeo_store_db_setup
+        creates: /home/vagrant/chopeo_store_db_setup_finished
+  handlers:
+     - name: reload nginx
+       service: name=nginx state=reloaded
+       become: yes
+     - name: set hostname
+       command: hostname {{ hostname }}
+       become: yes

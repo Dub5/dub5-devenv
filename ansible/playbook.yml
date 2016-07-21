@@ -53,6 +53,10 @@
         - postgresql-{{ postgresql_version }}
         - libpq-dev
         - python-psycopg2
+    - name: Set postresql's pg_hba.conf to blindly trust in us, the developers
+      copy: src=pg_hba.conf dest=/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf owner=root
+      notify:
+      - reload postgresql
     - name: Create a postgresql vagrant user
       postgresql_user: name=vagrant role_attr_flags=CREATEDB
       become: yes
@@ -68,6 +72,38 @@
         - nginx-extras
     - name: Set nginx configuration
       copy: src=nginx.conf dest=/etc/nginx/nginx.conf owner=root
+      notify:
+      - reload nginx
+    - name: Set landing site configuration
+      template: src=nginx-landing.j2 dest=/etc/nginx/sites-available/chopeo-landing mode=0644
+      vars:
+        sitename: chopeo-landing
+      notify:
+      - reload nginx
+    - name: Set app site configuration
+      template: src=nginx-app.j2 dest=/etc/nginx/sites-available/chopeo-store mode=0644
+      vars:
+        sitename: chopeo-store
+      notify:
+      - reload nginx
+    - name: Enable landing site
+      file: src=/etc/nginx/sites-available/chopeo-landing dest=/etc/nginx/sites-enabled/chopeo-landing state=link
+      notify:
+      - reload nginx
+    - name: Enable app site
+      file: src=/etc/nginx/sites-available/chopeo-store dest=/etc/nginx/sites-enabled/chopeo-store state=link
+      notify:
+      - reload nginx
+    - name: Disable default vhost
+      file: dest=/etc/nginx/sites-enabled/default state=absent
+      notify:
+      - reload nginx
+    - name: Install self-signed TLS key
+      copy: src=selfsigned.key dest=/home/vagrant/selfsigned.key mode=0644 owner=vagrant
+      notify:
+      - reload nginx
+    - name: Install self-signed TLS cert
+      copy: src=selfsigned.crt dest=/home/vagrant/selfsigned.crt mode=0644 owner=vagrant
       notify:
       - reload nginx
   - block:
@@ -98,6 +134,8 @@
           dest: /vagrant/chopeo-landing
     - name: Run bundler
       bundler: state=present chdir=/vagrant/chopeo-store
+      args:
+        extra_args: --path=/home/vagrant/.bundle
     - name: Run rake db:setup
       shell: bundle exec rake db:setup && touch /home/vagrant/chopeo_store_db_setup_finished
       args:
@@ -106,6 +144,9 @@
   handlers:
      - name: reload nginx
        service: name=nginx state=reloaded
+       become: yes
+     - name: reload postgresql
+       service: name=postgresql state=reloaded
        become: yes
      - name: set hostname
        command: hostname {{ hostname }}

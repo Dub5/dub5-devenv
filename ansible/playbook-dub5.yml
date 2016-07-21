@@ -1,8 +1,8 @@
 ---
 - hosts: all
   vars:
-    hostname: chopeo
-    ruby_version: 2.3
+    hostname: dub5
+    ruby_version: 2.2
     postgresql_version: 9.5
   tasks:
   - become: yes
@@ -12,15 +12,13 @@
     - include: ruby.yml
     - include: postgresql.yml
     - include: passenger.yml
-    - include: nginx_site.yml name=chopeo-landing template=nginx-landing.j2
-    - include: nginx_site.yml name=chopeo-store template=nginx-app.j2
+    - include: nginx_site.yml name=dub5-api template=nginx-app.j2
   - block:
     - include: user_environment.yml
     - include: git_repo.yml repo=git@github.com/Dub5/{{ item }}.git dest=/vagrant/{{ item }}
       with_items:
-        - chopeo-store
-        - chopeo-landing
-    - include: bundler.yml name=chopeo-store
+        - dub5-api
+    - include: bundler.yml name=dub5-api
   handlers:
     - name: reload nginx
       service: name=nginx state=reloaded

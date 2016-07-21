@@ -1,0 +1,16 @@
+---
+- name: Add the brightbox PPA for ruby packages
+  apt_repository: repo='ppa:brightbox/ruby-ng' update_cache=yes
+- name: Add ruby packages
+  apt: name={{ item }} state=present
+  with_items:
+    - ruby{{ ruby_version }}
+    - ruby{{ ruby_version }}-dev
+    - ruby-switch
+- name: Switch default ruby
+  alternatives: name={{ item.name }} path={{ item.path }}
+  with_items:
+    - name: ruby
+      path: /usr/bin/ruby{{ ruby_version }}
+- name: Install bundler
+  gem: name=bundler user_install=no

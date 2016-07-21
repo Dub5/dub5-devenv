@@ -1,0 +1,10 @@
+---
+- name: Run bundler
+  bundler: state=present chdir=/vagrant/{{ name }}
+  args:
+    extra_args: --path=/home/vagrant/.bundle
+- name: Run rake db:setup
+  shell: bundle exec rake db:setup && touch /home/vagrant/{{ name }}_db_setup_finished
+  args:
+    chdir: /vagrant/{{ name }}
+    creates: /home/vagrant/{{ name }}_db_setup_finished

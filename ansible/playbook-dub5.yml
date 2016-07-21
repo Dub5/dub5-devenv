@@ -1,0 +1,31 @@
+---
+- hosts: all
+  vars:
+    hostname: dub5
+    ruby_version: 2.2
+    postgresql_version: 9.5
+  tasks:
+  - become: yes
+    block:
+    - include: packages.yml
+    - include: system.yml
+    - include: ruby.yml
+    - include: postgresql.yml
+    - include: passenger.yml
+    - include: nginx_site.yml name=dub5-api template=nginx-app.j2
+  - block:
+    - include: user_environment.yml
+    - include: git_repo.yml repo=git@github.com/Dub5/{{ item }}.git dest=/vagrant/{{ item }}
+      with_items:
+        - dub5-api
+    - include: bundler.yml name=dub5-api
+  handlers:
+    - name: reload nginx
+      service: name=nginx state=reloaded
+      become: yes
+    - name: reload postgresql
+      service: name=postgresql state=reloaded
+      become: yes
+    - name: set hostname
+      command: hostname {{ hostname }}
+      become: yes

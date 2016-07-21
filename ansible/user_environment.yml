@@ -1,0 +1,19 @@
+---
+- name: Create the environment script
+  copy: src=environment.sh dest=/home/vagrant/.environment.sh mode=0644 owner=vagrant
+- name: Ensure secret_keys.sh exists
+  copy: dest=/home/vagrant/.secret_keys.sh mode=0644 owner=vagrant force=no content=""
+- name: Ensure bash profile exists
+  copy: dest=/home/vagrant/.bash_profile mode=0644 owner=vagrant force=no content=""
+- name: Include environment script in bash profile
+  lineinfile:
+    dest: /home/vagrant/.bash_profile
+    line: "source ~/.environment.sh"
+- name: Skip documentation when installing gems
+  copy:
+    dest: /home/vagrant/.gemrc
+    mode: 0644
+    owner: vagrant
+    content: |
+      ---
+      gem: --no-ri --no-rdoc

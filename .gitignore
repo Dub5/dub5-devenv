@@ -2,3 +2,5 @@
 .vagrant
 **/*.box
 dub5*
+chopeo*
+ansible/playbook.retry

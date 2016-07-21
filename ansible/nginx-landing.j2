@@ -1,0 +1,11 @@
+server {
+    listen 3000 default_server;
+    listen 3443 ssl default_server;
+
+    ssl_certificate     /home/vagrant/selfsigned.crt;
+    ssl_certificate_key /home/vagrant/selfsigned.key;
+
+    server_name www.lvh.me lvh.me;
+
+    root    /vagrant/{{ sitename }}/;
+}

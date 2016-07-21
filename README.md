@@ -3,8 +3,8 @@
 
 Development environment for Dub5 Ruby applications:
 
-- dub5-api
 - chopeo
+- dub5-api
 
 Environment components:
 

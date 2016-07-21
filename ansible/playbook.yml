@@ -1,153 +1,33 @@
 ---
 - hosts: all
   vars:
-    hostname: dub5
-    ruby_version: 2.2
+    hostname: chopeo
+    ruby_version: 2.3
     postgresql_version: 9.5
   tasks:
   - become: yes
     block:
-    - name: Install required packages
-      apt: name={{ item }}
-      with_items:
-        - software-properties-common
-        - libffi-dev
-        - libcurl4-gnutls-dev
-        - git
-        - build-essential
-        - nodejs
-        - apt-transport-https
-        - ca-certificates
-    - name: Add the brightbox PPA for ruby packages
-      apt_repository: repo='ppa:brightbox/ruby-ng' update_cache=yes
-    - name: Add ruby packages
-      apt: name={{ item }} state=present
-      with_items:
-        - ruby{{ ruby_version }}
-        - ruby{{ ruby_version }}-dev
-        - ruby-switch
-    - name: Switch default ruby
-      alternatives: name={{ item.name }} path={{ item.path }}
-      with_items:
-        - name: ruby
-          path: /usr/bin/ruby{{ ruby_version }}
-    - name: Install bundler
-      gem: name=bundler user_install=no
-    - name: Set hostname config
-      copy:
-        dest: /etc/hostname
-        content: "{{ hostname }}"
-      notify:
-      - set hostname
-    - name: Set loopback host
-      lineinfile:
-        dest: /etc/hosts
-        line: "127.0.0.1 {{ hostname }}"
-    - name: Add postgresql apt repo key
-      apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
-    - name: Add postgresql apt repo
-      apt_repository: repo="deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" state=present
-    - name: Install postgresql {{ postgresql_version }}
-      apt: name={{ item }} state=present
-      with_items:
-        - postgresql-{{ postgresql_version }}
-        - libpq-dev
-        - python-psycopg2
-    - name: Set postresql's pg_hba.conf to blindly trust in us, the developers
-      copy: src=pg_hba.conf dest=/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf owner=root
-      notify:
-      - reload postgresql
-    - name: Create a postgresql vagrant user
-      postgresql_user: name=vagrant role_attr_flags=CREATEDB
-      become: yes
-      become_user: postgres
-    - name: Add passenger apt repo key
-      apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=561F9B9CAC40B2F7 state=present
-    - name: Add passenger apt repo
-      apt_repository: repo="deb https://oss-binaries.phusionpassenger.com/apt/passenger trusty main" state=present
-    - name: Install passenger
-      apt: name={{ item }} state=present
-      with_items:
-        - passenger
-        - nginx-extras
-    - name: Set nginx configuration
-      copy: src=nginx.conf dest=/etc/nginx/nginx.conf owner=root
-      notify:
-      - reload nginx
-    - name: Set landing site configuration
-      template: src=nginx-landing.j2 dest=/etc/nginx/sites-available/chopeo-landing mode=0644
-      vars:
-        sitename: chopeo-landing
-      notify:
-      - reload nginx
-    - name: Set app site configuration
-      template: src=nginx-app.j2 dest=/etc/nginx/sites-available/chopeo-store mode=0644
-      vars:
-        sitename: chopeo-store
-      notify:
-      - reload nginx
-    - name: Enable landing site
-      file: src=/etc/nginx/sites-available/chopeo-landing dest=/etc/nginx/sites-enabled/chopeo-landing state=link
-      notify:
-      - reload nginx
-    - name: Enable app site
-      file: src=/etc/nginx/sites-available/chopeo-store dest=/etc/nginx/sites-enabled/chopeo-store state=link
-      notify:
-      - reload nginx
-    - name: Disable default vhost
-      file: dest=/etc/nginx/sites-enabled/default state=absent
-      notify:
-      - reload nginx
-    - name: Install self-signed TLS key
-      copy: src=selfsigned.key dest=/home/vagrant/selfsigned.key mode=0644 owner=vagrant
-      notify:
-      - reload nginx
-    - name: Install self-signed TLS cert
-      copy: src=selfsigned.crt dest=/home/vagrant/selfsigned.crt mode=0644 owner=vagrant
-      notify:
-      - reload nginx
+    - include: packages.yml
+    - include: system.yml
+    - include: ruby.yml
+    - include: postgresql.yml
+    - include: passenger.yml
+    - include: nginx_site.yml name=chopeo-landing template=nginx-landing.j2
+    - include: nginx_site.yml name=chopeo-store template=nginx-app.j2
   - block:
-    - name: Create the environment script
-      copy: src=environment.sh dest=/home/vagrant/.environment.sh mode=0644 owner=vagrant
-    - name: Ensure secret_keys.sh exists
-      copy: dest=/home/vagrant/.secret_keys.sh mode=0644 owner=vagrant force=no content=""
-    - name: Ensure bash profile exists
-      copy: dest=/home/vagrant/.bash_profile mode=0644 owner=vagrant force=no content=""
-    - name: Include environment script in bash profile
-      lineinfile:
-        dest: /home/vagrant/.bash_profile
-        line: "source ~/.environment.sh"
-    - name: Skip documentation when installing gems
-      copy:
-        dest: /home/vagrant/.gemrc
-        mode: 0644
-        owner: vagrant
-        content: |
-          ---
-          gem: --no-ri --no-rdoc
-    - name: Check out source repos
-      git: repo=ssh://{{ item.repo }} dest={{ item.dest }} accept_hostkey=yes
+    - include: user_environment.yml
+    - include: git_repo.yml repo=git@github.com/Dub5/{{ item }}.git dest=/vagrant/{{ item }}
       with_items:
-        - repo: git@github.com/Dub5/chopeo-store.git
-          dest: /vagrant/chopeo-store
-        - repo: git@github.com/Dub5/chopeo-landing.git
-          dest: /vagrant/chopeo-landing
-    - name: Run bundler
-      bundler: state=present chdir=/vagrant/chopeo-store
-      args:
-        extra_args: --path=/home/vagrant/.bundle
-    - name: Run rake db:setup
-      shell: bundle exec rake db:setup && touch /home/vagrant/chopeo_store_db_setup_finished
-      args:
-        chdir: /vagrant/chopeo-store
-        creates: /home/vagrant/chopeo_store_db_setup_finished
+        - chopeo-store
+        - chopeo-landing
+    - include: bundler.yml name=chopeo-store
   handlers:
-     - name: reload nginx
-       service: name=nginx state=reloaded
-       become: yes
-     - name: reload postgresql
-       service: name=postgresql state=reloaded
-       become: yes
-     - name: set hostname
-       command: hostname {{ hostname }}
-       become: yes
+    - name: reload nginx
+      service: name=nginx state=reloaded
+      become: yes
+    - name: reload postgresql
+      service: name=postgresql state=reloaded
+      become: yes
+    - name: set hostname
+      command: hostname {{ hostname }}
+      become: yes

@@ -1,0 +1,12 @@
+---
+- name: Install required packages
+  apt: name={{ item }}
+  with_items:
+    - software-properties-common
+    - libffi-dev
+    - libcurl4-gnutls-dev
+    - git
+    - build-essential
+    - nodejs
+    - apt-transport-https
+    - ca-certificates

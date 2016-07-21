@@ -1,0 +1,11 @@
+---
+- name: Set hostname config
+  copy:
+    dest: /etc/hostname
+    content: "{{ hostname }}"
+  notify:
+  - set hostname
+- name: Set loopback host
+  lineinfile:
+    dest: /etc/hosts
+    line: "127.0.0.1 {{ hostname }}"

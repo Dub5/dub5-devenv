@@ -1,0 +1,19 @@
+---
+- name: Add postgresql apt repo key
+  apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
+- name: Add postgresql apt repo
+  apt_repository: repo="deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" state=present
+- name: Install postgresql {{ postgresql_version }}
+  apt: name={{ item }} state=present
+  with_items:
+    - postgresql-{{ postgresql_version }}
+    - libpq-dev
+    - python-psycopg2
+- name: Set postresql's pg_hba.conf to blindly trust in us, the developers
+  copy: src=pg_hba.conf dest=/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf owner=root
+  notify:
+  - reload postgresql
+- name: Create a postgresql vagrant user
+  postgresql_user: name=vagrant role_attr_flags=CREATEDB
+  become: yes
+  become_user: postgres

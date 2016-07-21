@@ -1,0 +1,11 @@
+---
+- name: Set {{ name }} site configuration
+  template: src={{ template }} dest=/etc/nginx/sites-available/{{ name }} mode=0644
+  vars:
+    sitename: "{{ name }}"
+  notify:
+  - reload nginx
+- name: Enable {{ name }} site
+  file: src=/etc/nginx/sites-available/{{ name }} dest=/etc/nginx/sites-enabled/{{ name }} state=link
+  notify:
+  - reload nginx

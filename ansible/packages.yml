@@ -10,3 +10,5 @@
     - nodejs
     - apt-transport-https
     - ca-certificates
+    - imagemagick
+    - libmagickwand-dev

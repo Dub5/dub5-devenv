@@ -3,4 +3,4 @@
 **/*.box
 dub5*
 chopeo*
-ansible/playbook.retry
+ansible/*.retry

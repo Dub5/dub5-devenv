@@ -12,3 +12,4 @@
     - ca-certificates
     - imagemagick
     - libmagickwand-dev
+    - redis-server

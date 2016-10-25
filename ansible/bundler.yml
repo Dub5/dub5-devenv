@@ -6,3 +6,7 @@
   args:
     chdir: /vagrant/{{ name }}
     creates: /home/vagrant/{{ name }}_db_setup_finished
+- name: Run rake db:migrate
+  shell: bundle exec rake db:migrate
+  args:
+    chdir: /vagrant/{{ name }}

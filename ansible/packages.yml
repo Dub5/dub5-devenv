@@ -1,5 +1,6 @@
 ---
 - name: Install required packages
+  become: yes
   apt: name={{ item }}
   with_items:
     - software-properties-common

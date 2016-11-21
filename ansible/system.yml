@@ -1,5 +1,6 @@
 ---
 - name: Set hostname config
+  become: yes
   copy:
     dest: /etc/hostname
     content: "{{ hostname }}"

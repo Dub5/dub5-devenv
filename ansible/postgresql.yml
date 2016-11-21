@@ -1,15 +1,19 @@
 ---
 - name: Add postgresql apt repo key
+  become: yes
   apt_key: url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
 - name: Add postgresql apt repo
+  become: yes
   apt_repository: repo="deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" state=present
 - name: Install postgresql {{ postgresql_version }}
+  become: yes
   apt: name={{ item }} state=present
   with_items:
     - postgresql-{{ postgresql_version }}
     - libpq-dev
     - python-psycopg2
-- name: Set postresql's pg_hba.conf to blindly trust in us, the developers
+- name: Set postresql\'s pg_hba.conf to blindly trust in us, the developers
+  become: yes
   copy: src=pg_hba.conf dest=/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf owner=root
   notify:
   - reload postgresql

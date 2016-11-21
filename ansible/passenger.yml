@@ -1,26 +1,33 @@
 ---
 - name: Add passenger apt repo key
+  become: yes
   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=561F9B9CAC40B2F7 state=present
 - name: Add passenger apt repo
+  become: yes
   apt_repository: repo="deb https://oss-binaries.phusionpassenger.com/apt/passenger trusty main" state=present
 - name: Install passenger
+  become: yes
   apt: name={{ item }} state=present
   with_items:
     - passenger
     - nginx-extras
 - name: Set nginx configuration
+  become: yes
   template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf owner=root
   notify:
   - reload nginx
 - name: Disable default vhost
+  become: yes
   file: dest=/etc/nginx/sites-enabled/default state=absent
   notify:
   - reload nginx
 - name: Install self-signed TLS key
+  become: yes
   copy: src=selfsigned.key dest=/home/vagrant/selfsigned.key mode=0644 owner=vagrant
   notify:
   - reload nginx
 - name: Install self-signed TLS cert
+  become: yes
   copy: src=selfsigned.crt dest=/home/vagrant/selfsigned.crt mode=0644 owner=vagrant
   notify:
   - reload nginx

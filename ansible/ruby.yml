@@ -16,4 +16,5 @@
     - name: ruby
       path: /usr/bin/ruby{{ ruby_version }}
 - name: Install bundler
+  become: yes
   gem: name=bundler user_install=no
